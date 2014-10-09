@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+ <head>
+ 	<title>ScenePT Demoilta#6 - 1 November 2014</title>
+ 	<style>
+ 	@font-face {
+		font-family: 'Neuropol';
+		src: url('NEUROPOL.ttf') format('truetype');
+		font-weight: normal;
+		font-style: normal;
+	}
+	
+	body {
+		background: url('gloomy-stripes-dark-background-tile.jpg');
+		overflow: hidden;
+	}
+ 	.aligncenter {
+ 		position: absolute;
+ 		top: 0px;
+ 		width: 100%;
+ 		text-align: center;
+ 		margin: auto;
+ 	}
+ 	
+	#text {
+		position: absolute;
+		top: 0px;
+		left: 50%;
+		font-family: 'Neuropol';
+		color: #fff;
+		width: 50%;
+		height: 100%;
+		margin: auto;
+		text-align: center;
+		font-size: 30px;
+		overflow-y: hidden;
+		text-shadow: 2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000, 1px 1px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+	}
+ 	</style>
+	<script src="requestanimationframe.js"></script>
+  	<script type="application/javascript">
+
+rand = function(n){
+	return Math.floor(Math.random()*n);
+};
+
+var rms = 0;
+
+function init() {
+	
+	var context;
+
+	try {
+		// Fix up for prefixing
+		window.AudioContext = window.AudioContext||window.webkitAudioContext;
+		context = new AudioContext();
+
+		/*context.onaudioprocess = function(evt){
+			var input = evt.inputBuffer.getChannelData(0)
+			  , len = input.length   
+			  , total = i = 0
+			  , rms;
+			while ( i < len ) total += Math.abs( input[i++] );
+			rms = Math.sqrt( total / len );
+			//meter.style.width = ( rms * 100 ) + '%';
+			console.log(rms);
+		}*/
+
+		var request = new XMLHttpRequest();
+		request.open('GET', '04_macabro_-_sweet_ginger.ogg', true);
+		request.responseType = 'arraybuffer';
+		console.log('requesting');
+
+		// Decode asynchronously
+		request.onload = function() {
+			context.decodeAudioData(request.response, function(buffer) {
+			  	//dogBarkingBuffer = buffer;
+	  
+				backgroundAudio = context.createBufferSource(); // creates a sound source
+				backgroundAudio.buffer = buffer;                    // tell the source which sound to play
+				backgroundAudio.connect(context.destination);       // connect the source to the context's destination (the speakers)
+				backgroundAudio.loop = true;
+				backgroundAudio.start(0);
+	  
+				var levelChecker = context.createScriptProcessor(0, 2, 2);
+				backgroundAudio.connect(levelChecker);
+				levelChecker.connect(context.destination);
+				//console.log('connecting');
+
+				levelChecker.onaudioprocess = process;
+	
+			
+				// start canvas
+				drawCanvas();
+	  
+				console.log('decoded');
+
+	  
+			}, function(evt) {alert('failed to load buffer');});
+		}
+		request.send();
+
+	} catch(e) {
+		alert('Web Audio API is not supported in this browser');
+	}
+
+}
+
+var process = function(e) {
+	//console.log('we are here');
+	/*var buffer = e.inputBuffer.getChannelData(0);
+	var len = buffer.length; 
+	var total = 0;
+	var i = 0;
+	
+	while ( i < len ) total += Math.abs( buffer[i++] )
+	
+	rms = (rms + Math.sqrt( total / len )) * 0.5;*/
+	rms = 1.0;
+}
+
+var w;
+var h;
+var ctx;
+
+function drawCanvas() {
+
+	resize();
+
+	var num = 35;
+	var angle = (Math.PI*2)/num;
+	var size = 20;
+	var opening, phase1, phase2;
+	var maxj = 17;
+
+	function drawThis() {
+		var d = new Date();
+		var timer = d.getTime();
+		
+		phase1 = timer/25000;
+		phase2 = timer/2500;
+		
+		for (var j=0; j<maxj; j++) {
+		
+			var posX = w*(0.25) + Math.sin(phase2*0.25)*j*10;
+			var posY = h*(0.5) - Math.cos(phase2*0.25)*j*10;
+		
+			var thisb = parseInt(Math.sin(phase2*0.5 + j + rms)*35+120, 10);
+			//console.log(thisb);
+			//color = "rgba(255,175,"+thisb+",0.016)";
+			color = "rgba("+(185-thisb)+",70,"+(225-thisb)+","+(0.2*((maxj-j)/maxj))+")";
+			
+			ctx.fillStyle = color;
+			
+			for (var i=0; i<num; i++) {
+			
+					if (Math.random()*0.37 > rms) continue; 
+			
+					opening = Math.sin(i*angle)*10 + j*20;
+				
+					//size = 40+Math.sin(timer/1000)*10+Math.sin(timer*(j-numy*.5)/1000)*10;
+					ctx.save();
+					ctx.translate( posX+Math.sin(i*angle+phase1)*opening, posY+Math.cos(i*angle+phase1)*opening );
+					ctx.rotate(i*angle+Math.sin(phase2+Math.sin(i*angle))*3);
+					ctx.beginPath();
+					ctx.moveTo(-size*.5*j,-size*.5*j);
+					ctx.lineTo(0,size);
+					ctx.lineTo(size*.5*j,-size*.5*j);
+					//ctx.lineTo(size*.5,size/2*Math.sqrt(3));
+					ctx.fill();
+					ctx.closePath();
+
+					ctx.restore();
+			}
+		}
+		
+	}
+	
+	requestAnimationFrame( animate );
+	
+	var d = new Date();
+	var n = d.getTime();
+	var scrollvalue = 0;
+
+	function animate() {
+		requestAnimationFrame( animate );
+		ctx.clearRect(0,0,w,h);
+		drawThis();
+		
+		var dom = document.getElementById('text');
+		if (dom) {
+			var d2 = new Date();
+			var n2 = d2.getTime(); 
+
+			var delta = n2 - n;
+			n = n2;
+		
+			scrollvalue += delta*0.015;
+		
+			if (scrollvalue > dom.scrollHeight - dom.clientHeight) scrollvalue = 0;
+
+			dom.scrollTop = scrollvalue;
+		}
+	}
+}
+
+window.onresize = resize;
+
+function resize() {
+	w = window.innerWidth;
+	h = window.innerHeight;
+	
+	var canvas = document.getElementById("canvas");
+	canvas.setAttribute("width", w);
+	canvas.setAttribute("height", h);
+	
+	ctx = canvas.getContext("2d");
+	ctx.width = w;
+	ctx.height = h;
+}
+
+/*
+document.onmousemove = function (e) {mousePos(e);};
+
+var mouseX = 0;
+var mouseY = 0;
+
+function mousePos(e) {
+
+	var dom = document.getElementById("canvas");
+	var leftPad = dom.offsetLeft + dom.offsetParent.offsetLeft;
+	var topPad = dom.offsetTop + dom.offsetParent.offsetTop;
+
+	mouseX = e.pageX - leftPad; 
+	mouseY = e.pageY - topPad;
+	
+	return true;
+}*/
+  </script>
+ </head>
+ <body onload="init()">
+ 	<div class="aligncenter">
+   		<canvas id="canvas" width="800" height="600"></canvas>
+   		<div id="text">
+   			<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+   			<br><br><br><br><br><br><br><br><br>
+			<br>
+			Hi again ScenePT<br>
+			<br>
+			November will be dark and long<br>
+			<br>
+			and it's just around the corner<br>
+			<br>
+   			so lets get cozy together at<br>
+   			<br>
+   			the 6th edition of<br>
+   			<br>
+   			ScenePT Demoilta<br>
+   			<br>
+   			we can have a Superbock<br>
+   			<br>
+   			watch some demos<br>
+   			<br>
+   			one thing leads to the other<br>
+   			<br>
+   			we might even code an effect<br>
+   			<br>
+   			1st of November<br>
+   			around 14:30<br>
+   			<br>
+   			same place as usual:<br>
+   			<br>
+   			Artica's headquarters<br>
+   			Madan Park / FCT<br>
+   			Edificio 6<br>
+   			Monte da Caparica<br>
+   			<br><br>
+   			Credits:<br>
+   			code - ps<br>
+   			music - macabro<br>
+   			<br><br>
+   			Greetings to:<br>
+   			ScenePT AllStars<br>
+   			Nothing<br>   			
+   			GlenZ<br>
+   			TPOLM<br>
+   			Napalm Core<br>
+   			Volumetric Illusions<br>
+   			Airbag<br>
+   			Radioactive Design<br>
+   			alien)(dream<br>
+   			Spontz<br>
+   			Madwizards<br>
+   			Satori<br>
+   			Rift<br>
+   			MFX<br>
+   			Kewlers<br>
+   			flo<br>
+   			Traction<br>
+   			Accession<br>
+   			Cocoon<br>
+   			Inque<br>
+   			xplsv<br>
+   			ate bit<br>
+   			Conspiracy<br>
+   			Andromeda Software Development<br>
+   			Farbrausch<br>
+   			Kosmoplovci<br>
+   			TPOLM<br>
+   			Enough Records<br>
+   			<br>
+   			and you...<br>
+   			<br>
+   			<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+   			<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+   		</div>
+   	</div>
+ </body>
+</html>
