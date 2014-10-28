@@ -96,12 +96,12 @@ function init() {
 				console.log('decoded');
 
 	  
-			}, function(evt) {alert('failed to load buffer');});
+			}, function(evt) { /* alert('failed to load buffer'); */ });
 		}
 		request.send();
 
 	} catch(e) {
-		alert('Web Audio API is not supported in this browser');
+		// alert('Web Audio API is not supported in this browser');
 	}
 
 }
